@@ -4,7 +4,7 @@ from bs4 import BeautifulSoup
 import time
 import os
 
-bot = telebot.TeleBot("8151183876:AAGYCINNL_rPTNQxFc0RFarSl6NiISE5rsk")
+bot = telebot.TeleBot("7681621766:AAFoqsgn1s88fx8Fb6DtXDexO5oyPA533Ac")
 
 def fetch_proxies():
     url = 'https://t.me/s/ProxyMTProto'
