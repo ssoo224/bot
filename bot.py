@@ -5,7 +5,6 @@ import time
 import os
 
 bot = telebot.TeleBot("8151183876:AAGYCINNL_rPTNQxFc0RFarSl6NiISE5rsk")
-DEVELOPER_ID = 7115002714  # استبدل هذا الرقم بمعرف المطور الخاص بك
 
 def fetch_proxies():
     url = 'https://t.me/s/ProxyMTProto'
@@ -41,18 +40,6 @@ def send_welcome(message):
     button_get_proxy = telebot.types.InlineKeyboardButton(text="🫧 بروكسي", callback_data="get_proxy")
     markup.add(button_get_proxy)
     bot.send_message(message.chat.id, "- مرحبًا أضغط على زر بروكسيات للبحث عن بروكسي قوي وسريع 🎉 .", reply_markup=markup)
-    
-    # إشعار للمطور عند دخول عضو جديد
-    if message.from_user.id != DEVELOPER_ID:
-        bot.send_message(
-            DEVELOPER_ID, 
-            f"📢 عضو جديد دخل إلى البوت:\nاسم المستخدم: @{message.from_user.username or 'بدون اسم مستخدم'}\nالمعرف: {message.from_user.id}"
-        )
-
-@bot.message_handler(func=lambda message: True)
-def forward_user_message(message):
-    if message.from_user.id != DEVELOPER_ID:
-        bot.forward_message(DEVELOPER_ID, message.chat.id, message.message_id)
 
 @bot.callback_query_handler(func=lambda call: call.data == "get_proxy")
 def send_proxy(call):
@@ -76,6 +63,7 @@ def send_proxy(call):
     else:
         bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, 
                               text="عذرًا، لم يتم العثور على بروكسيات في الوقت الحالي.")
+                              
 
 @bot.callback_query_handler(func=lambda call: call.data == "search_stronger")
 def search_stronger_proxy(call):
