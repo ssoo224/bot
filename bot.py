@@ -7,7 +7,7 @@ bot = telebot.TeleBot("7533541751:AAHS7A80PdLVOIypjBqw5wYw0z68sUVi7EE")
 @bot.message_handler(commands=['start'])
 def n4(message):
     markup = InlineKeyboardMarkup()
-    btn = InlineKeyboardButton("🔗", url="https://t.me/rr8r9")  
+    btn = InlineKeyboardButton("السورس", url="https://t.me/Scorpion_scorp")  
     markup.add(btn)   
     msg = bot.send_message(
         message.chat.id, 
