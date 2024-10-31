@@ -1,60 +1,112 @@
 import telebot
 import requests
-from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+from bs4 import BeautifulSoup
+import time
+import os
 
-bot = telebot.TeleBot("توكن")
+bot = telebot.TeleBot("8151183876:AAGYCINNL_rPTNQxFc0RFarSl6NiISE5rsk")
+DEVELOPER_ID = 7115002714  # استبدل هذا الرقم بمعرف المطور الخاص بك
+
+def fetch_proxies():
+    url = 'https://t.me/s/ProxyMTProto'
+    response = requests.get(url)
+    soup = BeautifulSoup(response.content, 'html.parser')
+
+    proxies = []
+    for message in soup.find_all('a', href=True):
+        if 'proxy' in message['href']:
+            proxies.append(message['href'])
+    
+    return proxies
+
+def get_ping(proxy_url):
+    try:
+        proxy_info = proxy_url.split("://")[1]
+        proxy_ip = proxy_info.split(":")[0]
+        start_time = time.time()
+        response = os.system(f"ping -c 1 {proxy_ip}")
+        end_time = time.time()
+        if response == 0:
+            ping = int((end_time - start_time) * 1000)
+            return ping
+        else:
+            return None
+    except Exception as e:
+        print(f"Error fetching ping: {e}")
+        return None
 
 @bot.message_handler(commands=['start'])
-def n4(message):
-    markup = InlineKeyboardMarkup()
-    btn = InlineKeyboardButton("السورس", url="https://t.me/Scorpion_scorp")  
-    markup.add(btn)   
-    msg = bot.send_message(
-        message.chat.id, 
-        "- أهلاً بك عزيزي في بوت فحص يوزرات الأنستا المتاحة \n- أرسل اليوزر بدون @", 
-        reply_markup=markup
-    )
+def send_welcome(message):
+    markup = telebot.types.InlineKeyboardMarkup()
+    button_get_proxy = telebot.types.InlineKeyboardButton(text="🫧 بروكسي", callback_data="get_proxy")
+    markup.add(button_get_proxy)
+    bot.send_message(message.chat.id, "- مرحبًا أضغط على زر بروكسيات للبحث عن بروكسي قوي وسريع 🎉 .", reply_markup=markup)
     
-    bot.register_next_step_handler(msg, userins)
+    # إشعار للمطور عند دخول عضو جديد
+    if message.from_user.id != DEVELOPER_ID:
+        bot.send_message(
+            DEVELOPER_ID, 
+            f"📢 عضو جديد دخل إلى البوت:\nاسم المستخدم: @{message.from_user.username or 'بدون اسم مستخدم'}\nالمعرف: {message.from_user.id}"
+        )
 
-def userins(message):
-    user = message.text
-    url = requests.post(
-        'https://www.instagram.com/accounts/web_create_ajax/attempt/',
-        headers={
-            'Host': 'www.instagram.com',
-            'content-length': '85',
-            'sec-ch-ua': '" Not A;Brand";v="99", "Chromium";v="101"',
-            'x-ig-app-id': '936619743392459',
-            'x-ig-www-claim': '0',
-            'sec-ch-ua-mobile': '?0',
-            'x-instagram-ajax': '81f3a3c9dfe2',
-            'content-type': 'application/x-www-form-urlencoded',
-            'accept': '*/*',
-            'x-requested-with': 'XMLHttpRequest',
-            'x-asbd-id': '198387',
-            'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.40 Safari/537.36',
-            'x-csrftoken': 'jzhjt4G11O37lW1aDFyFmy1K0yIEN9Qv',
-            'sec-ch-ua-platform': '"Linux"',
-            'origin': 'https://www.instagram.com',
-            'sec-fetch-site': 'same-origin',
-            'sec-fetch-mode': 'cors',
-            'sec-fetch-dest': 'empty',
-            'referer': 'https://www.instagram.com/accounts/emailsignup/',
-            'accept-encoding': 'gzip, deflate, br',
-            'accept-language': 'en-IQ,en;q=0.9',
-            'cookie': 'csrftoken=jzhjt4G11O37lW1aDFyFmy1K0yIEN9Qv; mid=YtsQ1gABAAEszHB5wT9VqccwQIUL; ig_did=227CCCC2-3675-4A04-8DA5-BA3195B46425; ig_nrcb=1'
-        },
-        data=f'email=aakmnnsjskksmsnsn%40gmail.com&username={user}&first_name=&opt_into_one_tap=false'
-    )
+@bot.message_handler(func=lambda message: True)
+def forward_user_message(message):
+    if message.from_user.id != DEVELOPER_ID:
+        bot.forward_message(DEVELOPER_ID, message.chat.id, message.message_id)
 
-    if 'feedback_required' in url.text:
-        bot.send_message(message.chat.id, "هناك خطأ أثناء الفحص، حاول لاحقًا.")
-    elif '"username_is_taken"' in url.text or '"errors": {"username":' in url.text:
-        bot.send_message(message.chat.id, f"اليوزر `{user}` غير متاح ❌", parse_mode="Markdown")
+@bot.callback_query_handler(func=lambda call: call.data == "get_proxy")
+def send_proxy(call):
+    proxies = fetch_proxies()
+    if proxies:
+        proxy = proxies[0]
+        ping = get_ping(proxy)
+
+        if ping is not None:
+            markup = telebot.types.InlineKeyboardMarkup()
+            button_connect_proxy = telebot.types.InlineKeyboardButton(text="🔗 اتصال بالبروكسي", url=proxy)
+            button_search_stronger = telebot.types.InlineKeyboardButton(text="🔄 البحث عن أقوى", callback_data="search_stronger")
+            markup.add(button_connect_proxy, button_search_stronger)
+
+            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, 
+                                  text=f"- تم الحصول على بروكسي والبنك هو {ping} ms .\n- هل تريد الإتصال ام البحث عن بروكسي اقوى ؟", 
+                                  reply_markup=markup)
+        else:
+            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, 
+                                  text="عذرًا، لم أتمكن من حساب البنك للبروكسي.")
     else:
-        bot.send_message(message.chat.id, f"اليوزر `{user}` متاح ✅", parse_mode="Markdown")    
-    bot.register_next_step_handler(message, userins)
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, 
+                              text="عذرًا، لم يتم العثور على بروكسيات في الوقت الحالي.")
 
+@bot.callback_query_handler(func=lambda call: call.data == "search_stronger")
+def search_stronger_proxy(call):
+    bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, 
+                          text="جارٍ البحث عن بروكسي أقوى ...")
+
+    proxies = fetch_proxies()
+    if proxies:
+        best_proxy = None
+        best_ping = float('inf')
+
+        for proxy in proxies:
+            ping = get_ping(proxy)
+            if ping is not None and ping < best_ping:
+                best_ping = ping
+                best_proxy = proxy
+        
+        if best_proxy:
+            markup = telebot.types.InlineKeyboardMarkup()
+            button_connect_proxy = telebot.types.InlineKeyboardButton(text="🔗 اتصال بالبروكسي", url=best_proxy)
+            button_search_stronger = telebot.types.InlineKeyboardButton(text="🔄 البحث عن أقوى", callback_data="search_stronger")
+            markup.add(button_connect_proxy, button_search_stronger)
+
+            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, 
+                                  text=f"- تم العثور على أقوى بروكسي والبنك هو {best_ping} ms.\n- هل تريد الإتصال ام البحث عن بروكسي اقوى ؟", 
+                                  reply_markup=markup)
+        else:
+            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, 
+                                  text="عذرًا، لم أتمكن من العثور على بروكسيات قوية.")
+    else:
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, 
+                              text="عذرًا، لم يتم العثور على بروكسيات في الوقت الحالي.")
 
 bot.infinity_polling()
