@@ -2,7 +2,7 @@ import telebot
 import requests
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-bot = telebot.TeleBot("7533541751:AAHS7A80PdLVOIypjBqw5wYw0z68sUVi7EE")
+bot = telebot.TeleBot("توكن")
 
 @bot.message_handler(commands=['start'])
 def n4(message):
