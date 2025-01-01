@@ -1,20 +1,14 @@
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from pyrogram.storage import FileStorage
-import os
+from pyrogram.storage import InMemoryStorage  # التخزين المؤقت
 
 # إعدادات البوت
-API_ID = os.getenv("API_ID")  # تأكد من إضافة API_ID كمتغير بيئي
-API_HASH = os.getenv("API_HASH")  # تأكد من إضافة API_HASH كمتغير بيئي
-BOT_TOKEN = os.getenv("BOT_TOKEN")  # تأكد من إضافة BOT_TOKEN كمتغير بيئي
-
-# تحديد مجلد العمل في RAILWAY
-storage_path = "/app/storage.json"  # استخدم هذا المسار في RAILWAY
-
-# إنشاء التخزين
-storage = FileStorage(storage_path)
+API_ID = 28384147  # ضع هنا API ID
+API_HASH = "1508ece11802e6214b4138e5917fef4b"  # ضع هنا API Hash
+BOT_TOKEN = "7611194546:AAEPJ_xSoDH3sS3112qQoJH78LIV1jgxkkA"  # ضع هنا توكن البوت
 
 # إنشاء البوت
+storage = InMemoryStorage()  # استخدام التخزين المؤقت
 app = Client("session_extractor", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN, storage=storage)
 
 # رسالة البداية
@@ -36,26 +30,26 @@ async def handle_messages(client, message):
         text = message.text
 
         # الخطوة 1: جمع رقم الهاتف
-        if "phone_number" not in client.storage:
-            client.storage[user_id] = {"phone_number": text}
+        if "phone_number" not in storage:
+            storage[user_id] = {"phone_number": text}
             await message.reply_text("📩 أدخل الآن كود التحقق الذي وصلك:")
             return
 
         # الخطوة 2: جمع كود التحقق
-        if "code" not in client.storage[user_id]:
-            client.storage[user_id]["code"] = text
-            phone_number = client.storage[user_id]["phone_number"]
+        if "code" not in storage[user_id]:
+            storage[user_id]["code"] = text
+            phone_number = storage[user_id]["phone_number"]
 
             async with Client(":memory:", api_id=API_ID, api_hash=API_HASH) as temp_client:
                 try:
-                    await temp_client.sign_in(phone_number, client.storage[user_id]["code"])
+                    await temp_client.sign_in(phone_number, storage[user_id]["code"])
 
                     # إذا كان الحساب محميًا بكلمة مرور
-                    if "password" not in client.storage[user_id]:
+                    if "password" not in storage[user_id]:
                         await message.reply_text("🔒 الحساب محمي بكلمة مرور. أدخلها الآن:")
                         return
 
-                    password = client.storage[user_id]["password"]
+                    password = storage[user_id]["password"]
                     await temp_client.check_password(password)
 
                     # استخراج الجلسة
@@ -70,8 +64,8 @@ async def handle_messages(client, message):
                     await message.reply_text(f"❌ حدث خطأ أثناء العملية:\n{e}")
 
         # الخطوة 3: جمع كلمة المرور (إذا لزم)
-        elif "password" not in client.storage[user_id]:
-            client.storage[user_id]["password"] = text
+        elif "password" not in storage[user_id]:
+            storage[user_id]["password"] = text
 
     except Exception as e:
         await message.reply_text(f"❌ حدث خطأ: {e}")
