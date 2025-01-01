@@ -1,7 +1,8 @@
 import requests
 from user_agent import generate_user_agent
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, MessageHandler, Filters
+from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, MessageHandler
+from telegram.ext import filters
 import time
 
 # خلي توكن وايدي جوه
@@ -142,8 +143,8 @@ dp.add_handler(CommandHandler("start", start))
 dp.add_handler(CallbackQueryHandler(add_passwords, pattern="add_passwords"))
 dp.add_handler(CallbackQueryHandler(start_bruteforce, pattern="start_bruteforce"))
 dp.add_handler(CallbackQueryHandler(stop_bruteforce, pattern="stop_bruteforce"))
-dp.add_handler(MessageHandler(Filters.document, handle_file))
-dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_username))
+dp.add_handler(MessageHandler(filters.document, handle_file))
+dp.add_handler(MessageHandler(filters.text & ~filters.command, handle_username))
 
 updater.start_polling()
 updater.idle()
