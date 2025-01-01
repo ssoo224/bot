@@ -1,13 +1,17 @@
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from pyrogram.storage import FileStorage
 
 # إعدادات البوت
 API_ID = 28384147  # ضع هنا API ID
 API_HASH = "1508ece11802e6214b4138e5917fef4b"  # ضع هنا API Hash
 BOT_TOKEN = "7611194546:AAEPJ_xSoDH3sS3112qQoJH78LIV1jgxkkA"  # ضع هنا توكن البوت
 
+# تحديد التخزين
+storage = FileStorage("storage.json")  # تخزين الجلسة في ملف JSON
+
 # إنشاء البوت
-app = Client("session_extractor", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+app = Client("session_extractor", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN, storage=storage)
 
 # رسالة البداية
 WELCOME_MESSAGE = "🎉 مرحبًا! أرسل رقم الهاتف لبدء استخراج الجلسة."
@@ -70,5 +74,4 @@ async def handle_messages(client, message):
 
 
 # تشغيل البوت
-app.storage = {}  # تخزين مؤقت للبيانات أثناء المحادثة
 app.run()
