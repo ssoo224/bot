@@ -1,3 +1,5 @@
+user_agent
+telegram
 pyrogram
 pyTelegramBotAPI
 requests
