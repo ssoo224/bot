@@ -1,99 +1,149 @@
-import telebot
-import requests
-from bs4 import BeautifulSoup
-import time
-import os
+from pyrogram import Client, filters
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+import asyncio
 
-bot = telebot.TeleBot("7868072332:AAHZo5ENEMERzguvffKjvibJ5N67bB1bW1g")  # ضع توكن البوت هنا
+# إعدادات البوت
+API_ID = 28384147  # ضع هنا API ID
+API_HASH = "1508ece11802e6214b4138e5917fef4b"  # ضع هنا API Hash
+BOT_TOKEN = "7611194546:AAEPJ_xSoDH3sS3112qQoJH78LIV1jgxkkA"  # ضع هنا توكن البوت
+OWNER_ID = 7115002714  # ضع هنا آيدي المطور الأساسي
 
-def fetch_proxies():
-    url = 'https://t.me/s/ProxyMTProto'
-    response = requests.get(url)
-    soup = BeautifulSoup(response.content, 'html.parser')
+# قوائم التحكم
+ADMINS = [OWNER_ID]
+BOT_STATUS = True
+FORCED_SUBSCRIPTION = None
+ENABLE_CONTACT = False
 
-    proxies = []
-    for message in soup.find_all('a', href=True):
-        if 'proxy' in message['href']:
-            proxies.append(message['href'])
+# إنشاء البوت
+app = Client("session_extractor", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
-    return proxies
+# رسالة الترحيب مع الأزرار
+WELCOME_MESSAGE = "🎉 مرحبًا بك في بوت استخراج الجلسات! استخدم الأزرار أدناه للاستفادة من ميزات البوت."
 
-def get_ping(proxy_url):
+WELCOME_BUTTONS = InlineKeyboardMarkup(
+    [
+        [InlineKeyboardButton("📥 استخراج الجلسة", callback_data="extract_session")],
+        [
+            InlineKeyboardButton("📢 قناة السورس", url="https://t.me/source_channel"),
+            InlineKeyboardButton("👤 مطور البوت", url="https://t.me/developer_handle"),
+        ],
+    ]
+)
+
+ADMIN_PANEL_BUTTONS = InlineKeyboardMarkup(
+    [
+        [InlineKeyboardButton("✅ تفعيل البوت", callback_data="enable_bot"),
+         InlineKeyboardButton("❌ تعطيل البوت", callback_data="disable_bot")],
+        [InlineKeyboardButton("📢 تفعيل الاشتراك", callback_data="enable_subscription"),
+         InlineKeyboardButton("❌ تعطيل الاشتراك", callback_data="disable_subscription")],
+        [InlineKeyboardButton("📩 تفعيل التواصل", callback_data="enable_contact"),
+         InlineKeyboardButton("❌ تعطيل التواصل", callback_data="disable_contact")],
+        [InlineKeyboardButton("📊 عدد الأعضاء", callback_data="member_count")],
+        [InlineKeyboardButton("⬆️ رفع أدمن", callback_data="promote_admin"),
+         InlineKeyboardButton("⬇️ تنزيل أدمن", callback_data="demote_admin")],
+    ]
+)
+
+# رسالة البداية
+@app.on_message(filters.command("start"))
+async def start(client, message):
+    user_id = message.from_user.id
+
+    if user_id in ADMINS:
+        await message.reply_text(
+            "🎉 مرحبًا بك في لوحة تحكم الأدمن!",
+            reply_markup=ADMIN_PANEL_BUTTONS,
+        )
+    else:
+        await message.reply_text(
+            WELCOME_MESSAGE,
+            reply_markup=WELCOME_BUTTONS,
+        )
+
+# استخراج الجلسة
+@app.on_callback_query(filters.regex("extract_session"))
+async def extract_session(client, callback_query):
+    user_id = callback_query.from_user.id
+
+    if not BOT_STATUS:
+        await callback_query.answer("❌ البوت معطل حاليًا.", show_alert=True)
+        return
+
+    await callback_query.message.reply_text("🚀 أرسل الآن رقم الهاتف (مع رمز الدولة):")
+    phone_number = await app.ask(user_id, "📱 أدخل رقم الهاتف:")
     try:
-        proxy_info = proxy_url.split("://")[1]
-        proxy_ip = proxy_info.split(":")[0]
-        start_time = time.time()
-        response = os.system(f"ping -c 1 {proxy_ip}")
-        end_time = time.time()
-        if response == 0:
-            ping = int((end_time - start_time) * 1000)
-            return ping
-        else:
-            return None
+        async with Client(":memory:", api_id=API_ID, api_hash=API_HASH) as temp_client:
+            code = await app.ask(user_id, "📩 أدخل الكود الذي وصلك الآن:")
+            await temp_client.sign_in(phone_number, code)
+
+            # تحقق بخطوتين إذا لزم
+            try:
+                password = await app.ask(user_id, "🔒 الحساب محمي بكلمة مرور، أدخلها الآن:")
+                await temp_client.check_password(password)
+            except:
+                pass
+
+            session_string = await temp_client.export_session_string()
+
+            # إرسال الجلسة إلى الرسائل المحفوظة
+            await temp_client.send_message(
+                "me",
+                f"🎉 **تم استخراج الجلسة بنجاح:**\n\n`{session_string}`",
+                reply_markup=InlineKeyboardMarkup(
+                    [[InlineKeyboardButton("🔗 نسخ الجلسة", callback_data="copy_session")]]
+                ),
+            )
+
+            await callback_query.message.reply_text(
+                "✅ تم استخراج الجلسة بنجاح!\nتم إرسالها إلى رسائلك المحفوظة.",
+                reply_markup=InlineKeyboardMarkup(
+                    [[InlineKeyboardButton("📥 الرسائل المحفوظة", url="https://t.me/saved_messages")]]
+                ),
+            )
     except Exception as e:
-        print(f"Error fetching ping: {e}")
-        return None
+        await callback_query.message.reply_text(f"❌ حدث خطأ أثناء استخراج الجلسة:\n{e}")
 
-@bot.message_handler(commands=['start'])
-def send_welcome(message):
-    markup = telebot.types.InlineKeyboardMarkup()
-    button_get_proxy = telebot.types.InlineKeyboardButton(text="🫧 بروكسي", callback_data="get_proxy")
-    markup.add(button_get_proxy)
-    bot.send_message(message.chat.id, "- مرحبًا أضغط على زر بروكسيات للبحث عن بروكسي قوي وسريع 🎉 .", reply_markup=markup)
+# لوحة تحكم الأدمن
+@app.on_callback_query()
+async def admin_controls(client, callback_query):
+    global BOT_STATUS, FORCED_SUBSCRIPTION, ENABLE_CONTACT
 
-@bot.callback_query_handler(func=lambda call: call.data == "get_proxy")
-def send_proxy(call):
-    proxies = fetch_proxies()
-    if proxies:
-        proxy = proxies[0]
-        ping = get_ping(proxy)
+    user_id = callback_query.from_user.id
+    if user_id not in ADMINS:
+        await callback_query.answer("❌ ليس لديك صلاحيات.", show_alert=True)
+        return
 
-        if ping is not None:
-            markup = telebot.types.InlineKeyboardMarkup()
-            button_connect_proxy = telebot.types.InlineKeyboardButton(text="🔗 اتصال بالبروكسي", url=proxy)
-            button_search_stronger = telebot.types.InlineKeyboardButton(text="🔄 البحث عن أقوى", callback_data="search_stronger")
-            markup.add(button_connect_proxy, button_search_stronger)
+    if callback_query.data == "enable_bot":
+        BOT_STATUS = True
+        await callback_query.answer("✅ تم تفعيل البوت.")
+    elif callback_query.data == "disable_bot":
+        BOT_STATUS = False
+        await callback_query.answer("❌ تم تعطيل البوت.")
+    elif callback_query.data == "enable_subscription":
+        FORCED_SUBSCRIPTION = await app.ask(user_id, "📢 أرسل معرف القناة:")
+        await callback_query.answer("✅ تم تفعيل الاشتراك الإجباري.")
+    elif callback_query.data == "disable_subscription":
+        FORCED_SUBSCRIPTION = None
+        await callback_query.answer("❌ تم تعطيل الاشتراك الإجباري.")
+    elif callback_query.data == "enable_contact":
+        ENABLE_CONTACT = True
+        await callback_query.answer("✅ تم تفعيل التواصل.")
+    elif callback_query.data == "disable_contact":
+        ENABLE_CONTACT = False
+        await callback_query.answer("❌ تم تعطيل التواصل.")
+    elif callback_query.data == "member_count":
+        members = len(await app.get_users())
+        await callback_query.message.reply_text(f"📊 عدد الأعضاء في البوت: {members}")
+    elif callback_query.data == "promote_admin":
+        new_admin = await app.ask(user_id, "👤 أرسل معرف المستخدم لرفعه أدمن:")
+        ADMINS.append(int(new_admin))
+        await callback_query.answer(f"✅ تم رفع {new_admin} كأدمن.")
+    elif callback_query.data == "demote_admin":
+        remove_admin = await app.ask(user_id, "👤 أرسل معرف المستخدم لإزالته من الأدمن:")
+        ADMINS.remove(int(remove_admin))
+        await callback_query.answer(f"❌ تم إزالة {remove_admin} من الأدمن.")
 
-            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, 
-                                  text=f"- تم الحصول على بروكسي والبنك هو {ping} ms .\n- هل تريد الإتصال ام البحث عن بروكسي اقوى ؟", 
-                                  reply_markup=markup)
-        else:
-            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, 
-                                  text="عذرًا، لم أتمكن من حساب البنك للبروكسي.")
-    else:
-        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, 
-                              text="عذرًا، لم يتم العثور على بروكسيات في الوقت الحالي.")
-
-@bot.callback_query_handler(func=lambda call: call.data == "search_stronger")
-def search_stronger_proxy(call):
-    bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, 
-                          text="جارٍ البحث عن بروكسي أقوى ...")
-
-    proxies = fetch_proxies()
-    if proxies:
-        best_proxy = None
-        best_ping = float('inf')
-
-        for proxy in proxies:
-            ping = get_ping(proxy)
-            if ping is not None and ping < best_ping:
-                best_ping = ping
-                best_proxy = proxy
-
-        if best_proxy:
-            markup = telebot.types.InlineKeyboardMarkup()
-            button_connect_proxy = telebot.types.InlineKeyboardButton(text="🔗 اتصال بالبروكسي", url=best_proxy)
-            button_search_stronger = telebot.types.InlineKeyboardButton(text="🔄 البحث عن أقوى", callback_data="search_stronger")
-            markup.add(button_connect_proxy, button_search_stronger)
-
-            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, 
-                                  text=f"- تم العثور على أقوى بروكسي والبنك هو {best_ping} ms.\n- هل تريد الإتصال ام البحث عن بروكسي اقوى ؟", 
-                                  reply_markup=markup)
-        else:
-            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, 
-                                  text="عذرًا، لم أتمكن من العثور على بروكسيات قوية.")
-    else:
-        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, 
-                              text="عذرًا، لم يتم العثور على بروكسيات في الوقت الحالي.")
-
-bot.infinity_polling()
+# تشغيل البوت
+app.run()
+# انشاء المبرمج فيكتور
+# المبرمج فيكتور @div_victor
