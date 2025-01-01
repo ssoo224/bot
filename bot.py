@@ -1,14 +1,18 @@
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.storage import FileStorage
+import os
 
 # إعدادات البوت
-API_ID = 28384147  # ضع هنا API ID
-API_HASH = "1508ece11802e6214b4138e5917fef4b"  # ضع هنا API Hash
-BOT_TOKEN = "7611194546:AAEPJ_xSoDH3sS3112qQoJH78LIV1jgxkkA"  # ضع هنا توكن البوت
+API_ID = os.getenv("API_ID")  # تأكد من إضافة API_ID كمتغير بيئي
+API_HASH = os.getenv("API_HASH")  # تأكد من إضافة API_HASH كمتغير بيئي
+BOT_TOKEN = os.getenv("BOT_TOKEN")  # تأكد من إضافة BOT_TOKEN كمتغير بيئي
 
-# تحديد التخزين
-storage = FileStorage("storage.json")  # تخزين الجلسة في ملف JSON
+# تحديد مجلد العمل في RAILWAY
+storage_path = "/app/storage.json"  # استخدم هذا المسار في RAILWAY
+
+# إنشاء التخزين
+storage = FileStorage(storage_path)
 
 # إنشاء البوت
 app = Client("session_extractor", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN, storage=storage)
