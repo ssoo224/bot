@@ -1,6 +1,5 @@
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from pyrogram.storage import InMemoryStorage  # التخزين المؤقت
 
 # إعدادات البوت
 API_ID = 28384147  # ضع هنا API ID
@@ -8,8 +7,10 @@ API_HASH = "1508ece11802e6214b4138e5917fef4b"  # ضع هنا API Hash
 BOT_TOKEN = "7611194546:AAEPJ_xSoDH3sS3112qQoJH78LIV1jgxkkA"  # ضع هنا توكن البوت
 
 # إنشاء البوت
-storage = InMemoryStorage()  # استخدام التخزين المؤقت
-app = Client("session_extractor", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN, storage=storage)
+app = Client("session_extractor", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+
+# تخزين البيانات في القاموس
+storage = {}
 
 # رسالة البداية
 WELCOME_MESSAGE = "🎉 مرحبًا! أرسل رقم الهاتف لبدء استخراج الجلسة."
@@ -30,7 +31,7 @@ async def handle_messages(client, message):
         text = message.text
 
         # الخطوة 1: جمع رقم الهاتف
-        if "phone_number" not in storage:
+        if user_id not in storage or "phone_number" not in storage[user_id]:
             storage[user_id] = {"phone_number": text}
             await message.reply_text("📩 أدخل الآن كود التحقق الذي وصلك:")
             return
