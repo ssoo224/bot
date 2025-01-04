@@ -1,0 +1,20 @@
+{
+    "sudo": 7115002714,
+    "start_msg": "⥃ مرحبا بك عزيزي في بوت رشقكم | الخدمات ♯ @\nهنالك نوعين من الخدمات العادي و الـ ViP ✰\n⥃ البوت يتميز بسرعة تنفيذ الطلبات ⥉",
+    "prices": {
+        "member": 15,
+        "link": 150,
+        "vote": 12,
+        "react": 8,
+        "forward": 5,
+        "view": 8,
+        "poll": 10,
+        "userbot": 10,
+        "linkbot": 12,
+        "linkbot2": 12,
+        "comments": 8,
+        "spam": 12
+    },
+    "bot_token": "7611194546:AAEPJ_xSoDH3sS3112qQoJH78LIV1jgxkkA",
+    "give_bot_token": "7611194546:AAEPJ_xSoDH3sS3112qQoJH78LIV1jgxkkA"
+}
