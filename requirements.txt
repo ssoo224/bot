@@ -1,8 +1,0 @@
-user_agent
-telegram
-pyrogram
-pyTelegramBotAPI
-requests
-beautifulsoup4
-telebot
-python-telegram-bot
