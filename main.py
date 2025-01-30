@@ -4,13 +4,16 @@ import random
 import string
 from datetime import datetime, timedelta
 
-### توكنك هنا
+# توكنك هنا
 TOKEN = '7873853121:AAHznmevVDj3F8r-vC6ctQzXeJiXaAmdZ8I'
-### id الادمنين هنا
-YOUR_ADMIN_IDS = [7115002714, 7292118888]  # اضف IDs الخاصة بالمطورين هنا
+
+# معرف الإدمن هنا
+YOUR_ADMIN_ID = 7115002714
+
+# معرف المطور الجديد
+YOUR_DEVELOPER_ID = 7292118888
 
 bot = telebot.TeleBot(TOKEN)
-
 
 
 users_data = {}
