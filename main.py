@@ -5,7 +5,7 @@ import string
 from datetime import datetime, timedelta
 
 ### توكنك هنا
-TOKEN = '7611194546:AAEPJ_xSoDH3sS3112qQoJH78LIV1jgxkkA'
+TOKEN = '7873853121:AAHznmevVDj3F8r-vC6ctQzXeJiXaAmdZ8I'
 ### id الادمن هنا
 YOUR_ADMIN_ID = 7115002714
 
