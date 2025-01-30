@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 ### توكنك هنا
 TOKEN = '7873853121:AAHznmevVDj3F8r-vC6ctQzXeJiXaAmdZ8I'
 ### id الادمن هنا
-YOUR_ADMIN_ID = [7115002714, 7292118888]
+YOUR_ADMIN_ID = 7115002714,7292118888
 
 bot = telebot.TeleBot(TOKEN)
 
